@@ -1,4 +1,5 @@
 const { Thought, User } = require('../models');
+const mongoose = require('mongoose');
 
 module.exports = {
     async getThoughts(req, res) {
@@ -13,7 +14,7 @@ module.exports = {
 
     async getSingleThought(req, res) {
         try {
-            const thought = await Thought.findById(req.params.thoughtId).select('-__v')
+            const thought = await Thought.findById(req.params.thoughtId)
 
             if (!thought) {
                 return res.status(404).json(
@@ -84,7 +85,7 @@ module.exports = {
                 message: 'Thoought deleted.'
             });
         } catch (error) {
-            res.staus(500).json(error);
+            res.status(500).json(error);
         }
     },
 
@@ -110,10 +111,20 @@ module.exports = {
 
     async removeReaction(req, res) {
         try {
+            const { thoughtId, reactionId } = req.params;
+
+            if (!mongoose.Types.ObjectId.isValid(reactionId)) {
+                return res.status(400).json({ message: 'Invalid reaction ID format' });
+              }
+          
             const thought = await Thought.findByIdAndUpdate(
-                req.params.thoughtId,
-                { $pull: { reactions: { reactionId: req.params.reactionId } } },
-                { new: true }
+                thoughtId,
+                {
+                    $pull: {
+                      reactions: { _id: reactionId },
+                    }
+                },
+                { new: true },
             );
 
             if (!thought) {
@@ -123,10 +134,12 @@ module.exports = {
             }
 
             res.json({
-                message: 'Reaction deleted.'
+                message: 'Reaction deleted.', 
+                thought
             })
         } catch (error) {
+            console.error(error);
             res.status(500).json(error);
         }
-    }
+    },
 }
